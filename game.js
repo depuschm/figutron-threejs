@@ -25,7 +25,7 @@ const toast = document.querySelector('#toast');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#020508');
-scene.fog = new THREE.Fog('#020508', 2, 15);
+scene.fog = new THREE.Fog('#020508', 5, 25);
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 15, 10);
 camera.lookAt(0, 0, 0);
@@ -37,8 +37,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 mount.appendChild(renderer.domElement);
 
-// Ambience
-scene.add(new THREE.AmbientLight('#112233', 0.2));
+scene.add(new THREE.AmbientLight('#1a2b3c', 0.4));
 
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(ARENA_SIZE, ARENA_SIZE),
@@ -48,13 +47,11 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-// Player Group
 const player = new THREE.Group();
 player.position.set(0, 0, 0);
 scene.add(player);
 
-// Point Light on Player
-const playerLight = new THREE.PointLight('#54dfd1', 8, 15);
+const playerLight = new THREE.PointLight('#54dfd1', 12, 18);
 playerLight.position.set(0, 2, 0);
 playerLight.castShadow = true;
 player.add(playerLight);
@@ -67,18 +64,27 @@ playerFallback.position.y = 0.6;
 playerFallback.castShadow = true;
 player.add(playerFallback);
 
-// Walls and Rocks (Static Assets)
 const loader = new GLTFLoader();
+
+function spawnMushroom(x, z) {
+    loader.load('./assets/mushroom.glb', (gltf) => {
+        const mush = gltf.scene.clone();
+        mush.position.set(x, 0, z);
+        mush.scale.set(1.5, 1.5, 1.5);
+        scene.add(mush);
+        const glow = new THREE.PointLight('#33ccff', 5, 6);
+        glow.position.set(x, 1, z);
+        scene.add(glow);
+    });
+}
+
 function loadAssets() {
-    // Load Player Model
     loader.load('./assets/player.glb', (gltf) => {
         player.remove(playerFallback);
         const model = gltf.scene;
         model.traverse(n => { if(n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
         player.add(model);
     });
-
-    // Load Wall Assets to surround the arena
     loader.load('./assets/wall.glb', (gltf) => {
         for(let i=0; i<4; i++) {
             const w = gltf.scene.clone();
@@ -89,6 +95,10 @@ function loadAssets() {
             scene.add(w);
         }
     });
+    spawnMushroom(-5, -5);
+    spawnMushroom(5, 4);
+    spawnMushroom(-3, 7);
+    spawnMushroom(8, -2);
 }
 
 const enemies = ENEMY_SPAWNS.map((spawn, index) => {
@@ -125,8 +135,6 @@ function shoot() {
   const proj = new THREE.Mesh(projGeo, projMat.clone());
   proj.position.copy(player.position);
   proj.position.y = 0.5;
-  
-  // Aim at nearest enemy or forward
   let targetDir = new THREE.Vector3(0, 0, -1);
   let nearest = null;
   let minDist = Infinity;
@@ -138,30 +146,23 @@ function shoot() {
   if(nearest) {
       targetDir.subVectors(nearest.root.position, player.position).normalize();
   }
-
   scene.add(proj);
   projectiles.push({ mesh: proj, dir: targetDir, age: 0 });
 }
 
 function update(delta) {
-    // Movement
     const moveDir = { x: 0, z: 0 };
     if(keys.has('w')) moveDir.z -= 1;
     if(keys.has('s')) moveDir.z += 1;
     if(keys.has('a')) moveDir.x -= 1;
     if(keys.has('d')) moveDir.x += 1;
-    
     if(moveDir.x !== 0 || moveDir.z !== 0) {
         const moved = movePlayer(player.position, moveDir, delta, PLAYER_SPEED);
         player.position.set(moved.x, 0, moved.z);
         player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
     }
-
-    // Camera follow
     camera.position.lerp(new THREE.Vector3(player.position.x, 12, player.position.z + 8), 0.1);
     camera.lookAt(player.position);
-
-    // Enemies
     enemies.forEach(e => {
         if(e.status !== 'active') return;
         const d = player.position.distanceTo(e.root.position);
@@ -171,28 +172,23 @@ function update(delta) {
         }
         e.root.children[0].position.y = 0.5 + Math.sin(Date.now()*0.005 + e.bobPhase)*0.1;
     });
-
-    // Projectiles
     for(let i=projectiles.length-1; i>=0; i--) {
         const p = projectiles[i];
         p.age += delta;
         p.mesh.position.addScaledVector(p.dir, PROJECTILE_SPEED * delta);
-        
         enemies.forEach(e => {
-            if(e.status !== 'active') return;
+            if(e.status !== 'active') continue;
             if(p.mesh.position.distanceTo(e.root.position) < 0.7) {
                 const outcome = resolveEnemyHit(e, weaponMode);
                 if(outcome === 'killed') { scene.remove(e.root); kills++; }
                 else { 
                     e.root.children[0].material.color.set('#64e8a2'); 
                     spares++;
-                    // Logic for snapping will go here later
                 }
-                p.age = 100; // destroy
+                p.age = 100;
                 updateStats();
             }
         });
-
         if(p.age > 2) {
             scene.remove(p.mesh);
             projectiles.splice(i, 1);
