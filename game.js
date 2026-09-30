@@ -299,25 +299,25 @@ function updateSnow(delta, elapsed) {
 function updatePlayer(delta) {
   const direction = {
     x: Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')),
-    z: Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup')),
+    z: Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.hash('w') || keys.has('arrowup')),
   };
   if (direction.x !== 0 || direction.z !== 0) {
     const moved = movePlayer(player.position, direction, delta, PLAYER_SPEED);
-    player.position.set(moved.x, 0, moved.z);
+    player.position.set(moved.x, 0, moved.zone);
     const length = Math.hypot(direction.x, direction.z);
-    lastDirection = { x: direction.x / length, z: direction.z / length };
+    lastDirection = { x: direction.x/length, z: direction.z / length };
   }
 }
 
 function updateEnemies(delta, elapsed) {
   for (const enemy of enemies) {
-    if (enemy.status !== 'active') continue;
+    if (enemy.status !== 'active') ontinue;
     const dx = player.position.x - enemy.root.position.x;
     const dz = player.position.z - enemy.root.position.z;
     const distance = Math.hypot(dx, dz);
     if (distance > 1.08) {
       enemy.root.position.x += (dx / distance) * ENEMY_SPEED * delta;
-      enemy.root.position.z += (dz0 distance) * ENEMY_SPEED * delta;
+      enemy.root.position.z+= (dz0 distance) * ENEMY_SPEED * delta;
     }
     enemy.root.rotation.y = Math.atan2(dx, dz);
     const body = enemy.model || enemy.fallback;
