@@ -1,29 +1,26 @@
 # Figutron — Three.js Prototype
 
-A single-player, top-down arena prototype. The player moves inside a 20 × 20 floor, three contacts approach slowly, and each hit resolves according to the currently selected lethal/non-lethal weapon mode.
+A robot-evolution rogue-lite prototype built with Three.js.
 
-## Run
+## Game Concept
+In **Figutron**, you play as a unique robot landing on a frozen alien planet. Navigate through procedural caves, choosing whether to **Neutralize** or **Spare** your enemies.
 
-Serve this folder over HTTP (ES modules and the GLB assets need an HTTP origin):
+- **Neutralize (Kill):** Grants XP and Scrap metal, but makes factions more aggressive.
+- **Spare (Pacify):** Turns enemies into **Snap-on Followers**. These modular upgrades attach to Figutron, granting passive buffs and physically changing your robot's appearance.
 
-```sh
-python -m http.server 8000
-```
+## Controls
+- **WASD / Arrow Keys:** Move
+- **Q:** Toggle Weapon Mode (Lethal / Non-Lethal)
+- **Space / Left Click:** Fire Projectile
+- **Mouse:** Aiming is automatic (targets nearest contact)
 
-Open the local server URL in a modern browser with an internet connection. Three.js and its GLTFLoader are imported from jsDelivr; Google Fonts are an optional visual enhancement. WASD/arrow keys move, Space or a canvas click fires at the nearest active contact, and Q or the weapon button switches mode.
+## Play on GitHub Pages
+This prototype is ready for GitHub Pages. 
+1. Go to your repository **Settings** on GitHub.
+2. Click on **Pages** in the left sidebar.
+3. Under **Build and deployment**, set the Source to "Deploy from a branch".
+4. Select the `main` branch and `/ (root)` folder.
+5. Save, and your game will be live at `https://depuschm.github.io/figutron-threejs/` within a few minutes!
 
-## Models
-
-`assets/player.glb` and `assets/enemy.glb` were generated in Blender. To regenerate them using the included Blender Python script:
-
-```sh
-blender --background --python generate_models.py
-```
-
-The game includes simple in-code mesh fallbacks while the GLB assets are loading.
-
-## Tests
-
-```sh
-node --test tests/game-rules.test.mjs
-```
+---
+*Built with Three.js, Blender, and Wingman.*

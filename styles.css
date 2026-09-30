@@ -22,7 +22,7 @@ button { font: inherit; }
 .topbar { inset: 0 0 auto; height: 72px; display: flex; align-items: center; padding: 0 34px; border-bottom: 1px solid rgba(160, 190, 213, .11); background: rgba(6, 15, 26, .28); }
 .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink); font-weight: 700; letter-spacing: .16em; font-size: 13px; }
 .brand-mark { width: 19px; height: 19px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; transform: rotate(-8deg); }
-.brand-mark i { display: block; border: 1.5px solid var(--cyan); border-radius: 2px; }
+.brand-mark i { display: block; border: 1.5px solid var(--cyan); border-radius: 2px; } 
 .brand-mark i:nth-child(2), .brand-mark i:nth-child(3) { opacity: .5; }
 .mission-tag { position: absolute; left: 50%; transform: translateX(-50%); font: 10px 'DM Mono', monospace; letter-spacing: .12em; color: #d9e4ec; display: flex; align-items: center; gap: 9px; white-space: nowrap; }
 .live-dot, .status-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(84, 223, 209, .7); }
