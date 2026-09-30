@@ -22,6 +22,8 @@
   <body>
     <main class="game-shell">
       <div id="game" class="game-canvas" aria-label="Figutron top-down arena"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
       <header class="topbar">
         <a class="brand" href="#" aria-label="Figutron home">
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -47,7 +49,7 @@
       </section>
 
       <section class="weapon-card panel" aria-label="Weapon mode control">
-        <div class="weapon-label"><span class="weapon-glyph">⌱</span><span>WEAPON MODE</span></div>
+        <div class="weapon-label"><span class="weapon-glyph">⌁</span><span>WEAPON MODE</span></div>
         <button id="weapon-toggle" class="weapon-toggle lethal" type="button" aria-label="Weapon Mode: Lethal. Toggle weapon mode">
           <span class="toggle-status"></span><span id="weapon-mode">LETHAL</span><span class="toggle-key">Q</span>
         </button>

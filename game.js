@@ -24,10 +24,10 @@ const spareLabel = document.querySelector('#spare-count');
 const toast = document.querySelector('#toast');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#0a1724');
-scene.fog = new THREE.Fog('#0a1724', 24, 45);
+scene.background = new THREE.Color('#020508');
+scene.fog = new THREE.Fog('#020508', 2, 12);
 const camera = new THREE.OrthographicCamera(-18, 18, 11, -11, 0.1, 100);
-camera.position.set(0, 27, 12);
+camera.position.set(0, 5.5, 2.45);
 camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
@@ -39,25 +39,35 @@ renderer.toneMappingExposure = 1.22;
 renderer.domElement.setAttribute('aria-label', 'Three-dimensional arena. Move with WASD and fire with space or click.');
 mount.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight('#a4d9f2', '#152536', 2.05));
-const keyLight = new THREE.DirectionalLight('#d8f4ff', 2.5);
-keyLight.position.set(-7, 16, 8);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(1024, 1024);
-keyLight.shadow.camera.left = -14;
-keyLight.shadow.camera.right = 14;
-keyLight.shadow.camera.top = 14;
-keyLight.shadow.camera.bottom = -14;
-keyLight.shadow.bias = -0.001;
-scene.add(keyLight);
+scene.add(new THREE.HemisphereLight('#a4d9f2', '#152536', 0.42));
 
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(ARENA_SIZE, ARENA_SIZE),
-  new THREE.MeshStandardMaterial({ color: '#142536', roughness: 0.94, metalness: 0.08 }),
+  new THREE.MeshStandardMaterial({ color: '#050a10', roughness: 0.2, metalness: 0.5 }),
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
+
+const snowCount = 100;
+const snowPositions = new Float32Array(snowCount * 3);
+const snowDrifts = Array.from({ length: snowCount }, () => ({
+  x: (Math.random() - 0.5) * 0.16,
+  z: (Math.random() - 0.5) * 0.16,
+  fallSpeed: 0.12 + Math.random() * 0.2,
+}));
+for (let i = 0; i < snowCount; i += 1) {
+  snowPositions[i * 3] = (Math.random() - 0.5) * ARENA_SIZE;
+  snowPositions[i * 3 + 1] = 0.3 + Math.random() * 3.2;
+  snowPositions[i * 3 + 2] = (Math.random() - 0.5) * ARENA_SIZE;
+}
+const snowGeometry = new THREE.BufferGeometry();
+snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
+const snow = new THREE.Points(
+  snowGeometry,
+  new THREE.PointsMaterial({ color: '#dffbff', size: 0.055, transparent: true, opacity: 0.62, depthWrite: false }),
+);
+scene.add(snow);
 
 const grid = new THREE.GridHelper(ARENA_SIZE, 20, '#39717a', '#294354');
 grid.position.y = 0.014;
@@ -83,6 +93,9 @@ for (const [x, z] of [[-9.4, -9.4], [9.4, -9.4], [-9.4, 9.4], [9.4, 9.4]]) {
 const player = new THREE.Group();
 player.position.set(0, 0, 0);
 scene.add(player);
+const keyLight = new THREE.PointLight('#54dfd1', 5.0, 15);
+keyLight.position.set(0, 2.4, 0);
+player.add(keyLight);
 const playerFallback = new THREE.Group();
 const playerBody = new THREE.Mesh(
   new THREE.BoxGeometry(0.76, 0.58, 1.02),
@@ -199,7 +212,7 @@ function getShotDirection() {
   }
   if (target) {
     const x = target.root.position.x - player.position.x;
-    const z = target.root.position.z - player.position.z;
+    const z = target.root.position.z - player.position.z ;
     const length = Math.hypot(x, z) || 1;
     return { x: x / length, z: z / length };
   }
@@ -268,6 +281,21 @@ function updateProjectiles(delta) {
   }
 }
 
+function updateSnow(delta, elapsed) {
+  const positions = snow.geometry.attributes.position;
+  for (let i = 0; i < snowCount; i += 1) {
+    positions.array[i * 3] += snowDrifts[i].x * delta + Math.sin(elapsed + i) * 0.012 * delta;
+    positions.array[i * 3 + 1] -= snowDrifts[i].fallSpeed * delta;
+    positions.array[i * 3 + 2] += snowDrifts[i].z * delta + Math.cos(elapsed + i) * 0.012 * delta;
+    if (positions.array[i * 3 + 1] < 0.2) {
+      positions.array[i * 3] = (Math.random() - 0.5) * ARENA_SIZE;
+      positions.array[i * 3 + 1] = 2.5 + Math.random() * 1.2;
+      positions.array[i * 3 + 2] = (Math.random() - 0.5) * ARENA_SIZE;
+    }
+  }
+  positions.needsUpdate = true;
+}
+
 function updatePlayer(delta) {
   const direction = {
     x: Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft')),
@@ -289,7 +317,7 @@ function updateEnemies(delta, elapsed) {
     const distance = Math.hypot(dx, dz);
     if (distance > 1.08) {
       enemy.root.position.x += (dx / distance) * ENEMY_SPEED * delta;
-      enemy.root.position.z += (dz / distance) * ENEMY_SPEED * delta;
+      enemy.root.position.z += (dz0 distance) * ENEMY_SPEED * delta;
     }
     enemy.root.rotation.y = Math.atan2(dx, dz);
     const body = enemy.model || enemy.fallback;
@@ -315,6 +343,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.05);
   const elapsed = clock.elapsedTime;
   updatePlayer(delta);
+  updateSnow(delta, elapsed);
   updateEnemies(delta, elapsed);
   updateProjectiles(delta);
   renderer.render(scene, camera);
