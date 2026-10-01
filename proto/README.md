@@ -1,6 +1,8 @@
 # Figutron — Three.js Prototype
 
-A single-player, top-down arena prototype. Move inside a 20 × 20 floor, three contacts approach slowly, and each hit resolves according to the currently selected lethal/non-lethal weapon mode.
+A single-player, top-down room-crawler prototype. Every run generates a new 9 × 9 floor of 7–10 rooms (`map-gen.mjs`). Each room is a 20 × 20 arena; contacts approach and each hit resolves according to the currently selected lethal/non-lethal weapon mode.
+
+**Rooms:** START (safe), COMBAT (2 + depth contacts, max 6, faster the deeper you go), ITEM (repair orb, +2 integrity), BOSS (5 large contacts in a ring, deepest dead end). Doors open (cyan threshold) once every contact in the room is killed or spared; walk into a lit door to move on. Room outcomes persist when you go back. The top-right minimap only shows rooms you have visited.
 
 ## Run
 
@@ -16,7 +18,7 @@ Open the local server URL in a modern browser. Three.js is imported from jsDeliv
 
 **HP:** Contacts that touch you deal 1 damage (5 HP total, 1.5s invincibility after each hit). At 0 HP the run ends with SYSTEM FAILURE — press R or the REBOOT button to restart.
 
-If you see placeholder geometry instead of GLB models, open DevTools — every failed load logs `[Figutron] Failed to load …`. `window.__figutronDebug` exposes `scene`, `player`, `enemies`, `hp` and `gameOver` for playtesting.
+If you see placeholder geometry instead of GLB models, open DevTools — every failed load logs `[Figutron] Failed to load …`. `window.__figutronDebug` exposes `scene`, `player`, `enemies`, `map`, `doors`, `currentRoom`, `visitedRooms`, `hp`, `gameOver` and `loadRoom(id, entrySide)` for playtesting.
 
 ## Models
 
@@ -29,5 +31,5 @@ blender --background --python generate_models.py
 ## Tests
 
 ```sh
-node --test tests/game-rules.test.mjs
+node --test tests/game-rules.test.mjs tests/map-gen.test.mjs
 ```

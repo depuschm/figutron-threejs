@@ -15,7 +15,9 @@
 - [ ] Projectile visual feedback — muzzle flash, impact particle
 - [ ] Arena boundary feedback — visible border or bounce
 - [ ] Enemy variety — second type with different behavior
-- [ ] Integrate map-gen.mjs into game: room rendering, door transitions, minimap
+- [x] Integrate map-gen.mjs into game: room rendering, door transitions, minimap (2026-10-01)
+- [ ] Boss room: real boss enemy instead of 5 scaled-up contacts
+- [ ] More item types (currently only the +2 integrity repair orb)
 
 ## 🟡 UI / UX
 
@@ -24,11 +26,11 @@
 - [ ] Player blink during invincibility window
 - [ ] Swept projectile collision (P-07)
 - [ ] Sound effects and background music
-- [ ] Minimap overlay
+- [x] Minimap overlay (fog of war, current room glow)
 
 ## 🟢 Polish
 
-- [ ] Animated room-entry transition
+- [x] Animated room-entry transition (300ms fade)
 - [x] Hit-flash on enemy (white 120ms + knockback); player flashes red on damage
 - [ ] Screenshake on lethal kill
 - [ ] Enemy death animation

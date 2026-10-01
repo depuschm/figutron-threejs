@@ -1,86 +1,115 @@
-const GRID_SIZE = 9;
-const START = 4;
-const DIRECTIONS = [
-  ['north', 0, -1],
-  ['south', 0, 1],
-  ['east', 1, 0],
-  ['west', -1, 0],
-];
+export const ROOM_TYPES = ['Start', 'Normal', 'Item', 'Boss'];
 
-function randomFromSeed(seed) {
-  let state = 2166136261;
-  for (let index = 0; index < seed.length; index++) {
-    state = Math.imul(state ^ seed.charCodeAt(index), 16777619);
+const WIDTH = 9;
+const HEIGHT = 9;
+const MIN_ROOMS = 7;
+const MAX_ROOMS = 10;
+const STEPS = [[0, -1], [0, 1], [1, 0], [-1, 0]];
+
+function hashSeed(seed) {
+  const text = String(seed);
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
   }
+  return hash >>> 0;
+}
+
+function mulberry32(state) {
   return () => {
-    state += 0x6D2B79F5;
-    let value = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    state = (state + 0x6D2B79F5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), state | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-function roomId(x, y) {
-  return `room-${x}-${y}`;
+const key = (x, y) => `${x},${y}`;
+const inBounds = (x, y) => x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT;
+
+function occupiedNeighbors(x, y, occupied) {
+  return STEPS.filter(([dx, dy]) => occupied.has(key(x + dx, y + dy))).length;
 }
 
-function freeNeighbors(room, occupied) {
-  return DIRECTIONS
-    .map(([, dx, dy]) => ({ x: room.x + dx, y: room.y + dy }))
-    .filter(({ x, y }) => x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && !occupied.has(roomId(x, y)));
+// Random walk that branches from already placed cells. Cells touching more than one
+// existing room are rejected while possible, which keeps the layout corridor-like.
+function placeCells(random, target) {
+  const cx = Math.floor(WIDTH / 2);
+  const cy = Math.floor(HEIGHT / 2);
+  const cells = [{ x: cx, y: cy }];
+  const occupied = new Set([key(cx, cy)]);
+  let current = cells[0];
+  let attempts = 0;
+
+  while (cells.length < target) {
+    attempts++;
+    const strict = attempts < 400;
+    if (random() < 0.35) current = cells[Math.floor(random() * cells.length)];
+    const [dx, dy] = STEPS[Math.floor(random() * STEPS.length)];
+    const x = current.x + dx;
+    const y = current.y + dy;
+    if (!inBounds(x, y) || occupied.has(key(x, y))) continue;
+    if (strict && occupiedNeighbors(x, y, occupied) > 1) continue;
+    current = { x, y };
+    cells.push(current);
+    occupied.add(key(x, y));
+  }
+  return { cells, occupied };
 }
 
-export function generateMap(seed = 'figutron-map') {
-  const mapSeed = String(seed);
-  const random = randomFromSeed(mapSeed);
-  const targetCount = 8 + Math.floor(random() * 5);
-  let rooms, boss, treasureCandidates;
-
-  do {
-    const occupied = new Set([roomId(START, START)]);
-    const positions = [{ x: START, y: START }];
-    let current = positions[0];
-
-    while (positions.length < targetCount) {
-      let options = freeNeighbors(current, occupied);
-      if (options.length === 0 || random() < 0.3) {
-        const origins = positions.filter((position) => freeNeighbors(position, occupied).length > 0);
-        current = origins[Math.floor(random() * origins.length)];
-        options = freeNeighbors(current, occupied);
+function depthsFrom(start, occupied) {
+  const depth = new Map([[key(start.x, start.y), 0]]);
+  const queue = [start];
+  for (let i = 0; i < queue.length; i++) {
+    const { x, y } = queue[i];
+    const d = depth.get(key(x, y));
+    for (const [dx, dy] of STEPS) {
+      const next = key(x + dx, y + dy);
+      if (occupied.has(next) && !depth.has(next)) {
+        depth.set(next, d + 1);
+        queue.push({ x: x + dx, y: y + dy });
       }
-      current = options[Math.floor(random() * options.length)];
-      positions.push(current);
-      occupied.add(roomId(current.x, current.y));
     }
+  }
+  return depth;
+}
 
-    rooms = positions.map(({ x, y }) => ({
-      id: roomId(x, y),
-      x, y,
-      type: 'normal',
-      doors: Object.fromEntries(DIRECTIONS.map(([direction, dx, dy]) => [
-        direction,
-        occupied.has(roomId(x + dx, y + dy)),
-      ])),
-    }));
+export function generateMap(seed = 'default') {
+  const random = mulberry32(hashSeed(seed));
+  const target = MIN_ROOMS + Math.floor(random() * (MAX_ROOMS - MIN_ROOMS + 1));
+  const { cells, occupied } = placeCells(random, target);
+  const depth = depthsFrom(cells[0], occupied);
+  const depthOf = (cell) => depth.get(key(cell.x, cell.y));
+  const isDeadEnd = (cell) => occupiedNeighbors(cell.x, cell.y, occupied) === 1;
 
-    boss = rooms.reduce((furthest, room) =>
-      Math.abs(room.x - START) + Math.abs(room.y - START) >
-      Math.abs(furthest.x - START) + Math.abs(furthest.y - START) ? room : furthest);
-    treasureCandidates = rooms.filter((room) =>
-      room !== rooms[0] && room !== boss && Object.values(room.doors).filter(Boolean).length === 1);
-  } while (treasureCandidates.length === 0);
+  const others = cells.slice(1);
+  const bossPool = others.filter(isDeadEnd);
+  const boss = (bossPool.length > 0 ? bossPool : others)
+    .reduce((best, cell) => (depthOf(cell) > depthOf(best) ? cell : best));
+  const middle = others.filter((cell) => cell !== boss);
+  const itemPool = middle.filter(isDeadEnd);
+  const item = (itemPool.length > 0 ? itemPool : middle)[Math.floor(random() * (itemPool.length || middle.length))];
 
-  rooms[0].type = 'start';
-  boss.type = 'boss';
-  const treasure = treasureCandidates[Math.floor(random() * treasureCandidates.length)];
-  treasure.type = 'treasure';
+  const ordered = [cells[0], ...middle, boss];
+  const rooms = ordered.map((cell, index) => ({
+    id: `room-${index}`,
+    x: cell.x,
+    y: cell.y,
+    type: index === 0 ? 'Start' : cell === boss ? 'Boss' : cell === item ? 'Item' : 'Normal',
+    depth: depthOf(cell),
+  }));
 
-  const shopCandidates = rooms.filter((room) =>
-    room.type === 'normal' && Object.values(room.doors).filter(Boolean).length === 1);
-  const normalRooms = rooms.filter((room) => room.type === 'normal');
-  const shopPool = shopCandidates.length > 0 ? shopCandidates : normalRooms;
-  shopPool[Math.floor(random() * shopPool.length)].type = 'shop';
+  const grid = Array.from({ length: HEIGHT }, () => Array(WIDTH).fill(null));
+  for (const room of rooms) grid[room.y][room.x] = room.id;
 
-  return { seed: mapSeed, rooms, startRoom: rooms[0].id, bossRoom: boss.id };
+  const connections = [];
+  for (const room of rooms) {
+    for (const [dx, dy] of [[1, 0], [0, 1]]) {
+      const x = room.x + dx;
+      const y = room.y + dy;
+      if (inBounds(x, y) && grid[y][x]) connections.push({ from: room.id, to: grid[y][x] });
+    }
+  }
+
+  return { seed: String(seed), width: WIDTH, height: HEIGHT, grid, rooms, connections };
 }

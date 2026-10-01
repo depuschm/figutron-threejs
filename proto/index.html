@@ -10,6 +10,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      #transition-overlay { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100; }
+      #transition-overlay.active { opacity: 1; }
+      #minimap { position: fixed; top: 96px; right: 34px; width: 160px; height: 160px; z-index: 1; background: rgba(4, 10, 16, .62); border: 1px solid rgba(160, 190, 213, .14); border-radius: 5px; backdrop-filter: blur(10px); }
+      #room-type { color: var(--cyan); }
+      #room-type[data-type="boss"] { color: var(--red); }
+      #room-type[data-type="item"] { color: #ffd84a; }
+      @media (min-width: 761px) {
+        .status-card { top: 268px; }
+        .weapon-card { top: 432px; }
+      }
+      @media (min-width: 761px) and (max-height: 640px) {
+        #minimap { right: 240px; }
+        .status-card { top: 96px; }
+        .weapon-card { top: max(calc(50% - 37px), 279px); }
+      }
+      @media (max-width: 760px) {
+        #minimap { top: auto; right: auto; left: 16px; bottom: 120px; width: 110px; height: 110px; }
+      }
+    </style>
     <script type="importmap">
       {
         "imports": {
@@ -29,7 +49,7 @@
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
           <span>FIGUTRON</span>
         </a>
-        <div class="mission-tag"><span class="live-dot"></span> ARENA PROTOCOL <span class="tag-divider">/</span> <span class="muted">SIM. 01</span></div>
+        <div class="mission-tag"><span class="live-dot"></span> ARENA PROTOCOL <span class="tag-divider">/</span> <span id="room-type">START ROOM</span></div>
         <div class="session-tag"><span class="session-icon">◉</span> TRAINING SESSION</div>
       </header>
 
@@ -41,9 +61,11 @@
       <section class="mission-card panel" aria-label="Mission briefing">
         <div class="eyebrow"><span class="eyebrow-line"></span> DIRECTIVE 01</div>
         <h1>Choose<br />your <span>outcome.</span></h1>
-        <p>Neutralize or spare all contacts. Your weapon mode decides what happens next.</p>
+        <p>Neutralize or spare every contact to open the doors. Find the boss room. Your weapon mode decides what happens next.</p>
         <div class="arena-readout"><span>CONTAINMENT ZONE</span><strong>20 <small>×</small> 20</strong></div>
       </section>
+
+      <canvas id="minimap" width="160" height="160" aria-label="Minimap of visited rooms"></canvas>
 
       <section class="status-card panel" aria-label="Arena status">
         <div class="status-heading"><span>CONTACTS</span><span class="status-live"><i></i> LIVE</span></div>
@@ -80,6 +102,7 @@
           <button id="reboot-button" class="reboot-button" type="button">REBOOT <kbd>R</kbd></button>
         </div>
       </div>
+      <div id="transition-overlay" aria-hidden="true"></div>
     </main>
     <script type="module" src="./game.js"></script>
   </body>
